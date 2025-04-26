@@ -19,7 +19,7 @@ const CustomerForm = () => {
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/customers', {
+      const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/customers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

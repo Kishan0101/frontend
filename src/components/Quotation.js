@@ -19,7 +19,7 @@ const Quotation = () => {
       }
 
       try {
-        const response = await fetch('http://localhost:5000/api/quotations', {
+        const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/quotations', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -52,7 +52,7 @@ const Quotation = () => {
       }
 
       try {
-        const response = await fetch('http://localhost:5000/api/customers', {
+        const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/customers', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -86,7 +86,7 @@ const Quotation = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/quotations/${id}`, {
+      const response = await fetch(`https://webbiify-git-main-kishan0101s-projects.vercel.app/api/quotations/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

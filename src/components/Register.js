@@ -14,7 +14,7 @@ const Register = () => {
 
   const handleRegister = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

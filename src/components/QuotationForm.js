@@ -32,7 +32,7 @@ const QuotationForm = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:5000/api/customers', {
+        const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/customers', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -160,7 +160,7 @@ const QuotationForm = () => {
 
       console.log('Sending quotation data:', quotationData);
 
-      const response = await fetch('http://localhost:5000/api/quotations', {
+      const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/quotations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
