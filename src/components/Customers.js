@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -21,6 +22,27 @@ const Customers = () => {
     };
     fetchCustomers();
   }, []);
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this customer?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`https://webbiify-git-main-kishan0101s-projects.vercel.app/api/customers/${id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          setCustomers(customers.filter((customer) => customer._id !== id));
+        } else {
+          console.error('Error deleting customer');
+        }
+      } catch (error) {
+        console.error('Error deleting customer:', error);
+      }
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 md:p-8 lg:p-10">
@@ -41,6 +63,7 @@ const Customers = () => {
                 <th className="px-3 sm:px-4 py-2 text-left">Name</th>
                 <th className="px-3 sm:px-4 py-2 text-left">Country</th>
                 <th className="px-3 sm:px-4 py-2 text-left">Phone</th>
+                <th className="px-3 sm:px-4 py-2 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -50,6 +73,26 @@ const Customers = () => {
                   <td className="px-3 sm:px-4 py-2">{customer.name}</td>
                   <td className="px-3 sm:px-4 py-2">{customer.country}</td>
                   <td className="px-3 sm:px-4 py-2">{customer.phone}</td>
+                  <td className="px-3 sm:px-4 py-2">
+                    <Link
+                      to={`/customers/${customer._id}`}
+                      className="text-blue-600 hover:text-blue-800 mr-2 text-xs sm:text-sm"
+                    >
+                      View
+                    </Link>
+                    <Link
+                      to={`/customers/edit/${customer._id}`}
+                      className="text-green-600 hover:text-green-800 mr-2 text-xs sm:text-sm"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(customer._id)}
+                      className="text-red-600 hover:text-red-800 text-xs sm:text-sm"
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
