@@ -8,9 +8,9 @@ const QuotationForm = () => {
   const [formData, setFormData] = useState({
     number: '',
     client: '',
-    clientAddress: '',  // Added for auto-fetched data
-    clientEmail: '',    // Added for auto-fetched data
-    clientGSTIN: '',    // Added for auto-fetched data (assuming GSTIN might be available)
+    clientAddress: '',
+    clientEmail: '',
+    clientGSTIN: '',
     date: '2025-04-19',
     expireDate: '2025-05-19',
     status: 'Draft',
@@ -18,11 +18,10 @@ const QuotationForm = () => {
     currency: '',
     note: '',
   });
-  const [customers, setCustomers] = useState([]); // State to store fetched customers
+  const [customers, setCustomers] = useState([]);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-  // Fetch customers on component mount
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
@@ -58,6 +57,14 @@ const QuotationForm = () => {
     setItems([...items, { item: '', hsnSac: '', quantity: '', price: '', sgst: '', igst: '', total: 0 }]);
   };
 
+  const handleRemoveField = (index) => {
+    if (items.length === 1) {
+      alert('At least one item is required');
+      return;
+    }
+    setItems(items.filter((_, i) => i !== index));
+  };
+
   const handleInputChange = (index, event) => {
     const { name, value } = event.target;
     const newItems = [...items];
@@ -73,14 +80,13 @@ const QuotationForm = () => {
     const { name, value } = e.target;
 
     if (name === 'client') {
-      // Find the selected customer and auto-fill their details
       const selectedCustomer = customers.find((customer) => customer.name === value);
       setFormData({
         ...formData,
         client: value,
         clientAddress: selectedCustomer?.address || '',
         clientEmail: selectedCustomer?.email || '',
-        clientGSTIN: selectedCustomer?.GSTIN || '', // Assuming GSTIN might be part of customer data; adjust if not available
+        clientGSTIN: selectedCustomer?.GSTIN || '',
       });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -89,7 +95,7 @@ const QuotationForm = () => {
 
   const calculateTotals = () => {
     const subTotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    const tax = subTotal * 0; // Modify tax calculation as needed
+    const tax = subTotal * 0;
     const total = subTotal + tax;
     return { subTotal, tax, total };
   };
@@ -97,7 +103,7 @@ const QuotationForm = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.number.trim()) newErrors.number = 'Number is required';
-    if (!formData.client) newErrors.client = 'Client is required'; // Updated to check for empty selection
+    if (!formData.client) newErrors.client = 'Client is required';
     if (!formData.date) newErrors.date = 'Date is required';
     if (!formData.expireDate) newErrors.expireDate = 'Expire Date is required';
     if (!['Draft', 'Sent', 'Accepted', 'Declined'].includes(formData.status)) {
@@ -333,6 +339,7 @@ const QuotationForm = () => {
                   <th className="px-4 py-2 text-left">SGST</th>
                   <th className="px-4 py-2 text-left">IGST</th>
                   <th className="px-4 py-2 text-left">Total</th>
+                  <th className="px-4 py-2 text-left">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -420,6 +427,15 @@ const QuotationForm = () => {
                         readOnly
                         className="w-full px-3 py-2 border rounded-lg bg-gray-100 focus:outline-none text-sm sm:text-base"
                       />
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveField(index)}
+                        className="text-red-500 hover:text-red-700 text-sm sm:text-base"
+                      >
+                        ✕
+                      </button>
                     </td>
                   </tr>
                 ))}

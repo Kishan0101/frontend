@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Document, Page, View, Text, Image, StyleSheet, pdf } from '@react-pdf/renderer';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PencilIcon, TrashIcon, EyeIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import logo from '../components/Assests/Webbiify.png';
 import stamp from '../components/Assests/stamp.png';
 import bank from '../components/Assests/bankdetails.jpeg';
@@ -11,6 +13,7 @@ const Quotation = () => {
   const [editModal, setEditModal] = useState(false);
   const [detailsModal, setDetailsModal] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     number: '',
     client: '',
@@ -28,74 +31,60 @@ const Quotation = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchQuotations = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       const token = localStorage.getItem('token');
       if (!token) {
         navigate('/login');
+        setLoading(false);
         return;
       }
 
       try {
-        const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/quotations', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const [quotationsResponse, customersResponse] = await Promise.all([
+          fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/quotations', {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/customers', {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
 
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (!quotationsResponse.ok) {
+          const errorData = await quotationsResponse.json();
           console.error('API error:', errorData);
-          if (response.status === 401) {
+          if (quotationsResponse.status === 401) {
             localStorage.removeItem('token');
             navigate('/login');
           }
           setQuotations([]);
-          return;
+        } else {
+          const data = await quotationsResponse.json();
+          setQuotations(Array.isArray(data) ? data : []);
         }
 
-        const data = await response.json();
-        setQuotations(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Error fetching quotations:', error);
-        setQuotations([]);
-      }
-    };
-
-    const fetchCustomers = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      try {
-        const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/customers', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (!customersResponse.ok) {
+          const errorData = await customersResponse.json();
           console.error('API error:', errorData);
-          if (response.status === 401) {
+          if (customersResponse.status === 401) {
             localStorage.removeItem('token');
             navigate('/login');
           }
           setCustomers([]);
-          return;
+        } else {
+          const data = await customersResponse.json();
+          setCustomers(Array.isArray(data) ? data : []);
         }
-
-        const data = await response.json();
-        setCustomers(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error('Error fetching customers:', error);
+        console.error('Error fetching data:', error);
+        setQuotations([]);
         setCustomers([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchQuotations();
-    fetchCustomers();
+    fetchData();
   }, [navigate]);
 
   const openEditModal = async (quote) => {
@@ -222,6 +211,22 @@ const Quotation = () => {
     });
   };
 
+  // Animation variants
+  const rowVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i) => ({
+      opacity: 1,
+      y: 0,
+      transition: { delay: i * 0.1, duration: 0.3 },
+    }),
+  };
+
+  const modalVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } },
+    exit: { opacity: 0, scale: 0.8, transition: { duration: 0.2 } },
+  };
+
   // Styles for the PDF
   const styles = StyleSheet.create({
     page: {
@@ -284,7 +289,19 @@ const Quotation = () => {
       fontSize: 12,
       fontWeight: 'bold',
       marginBottom: 1,
-      marginTop: 150,
+      marginTop: 5,
+    },
+    noteTitle: {
+      color: '#0b0337',
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginBottom: 1,
+      marginTop: 40,
+    },
+    noteText: {
+      fontSize: 10,
+      color: '#646464',
+      marginBottom: 5,
     },
     table: {
       display: 'table',
@@ -359,11 +376,11 @@ const Quotation = () => {
       marginBottom: 5,
     },
     stamp: {
-      width: 90,
-      height: 90,
+      width: 120,
+      height: 120,
     },
     bankDetails: {
-      marginBottom: 40,
+      marginBottom: 1,
     },
     bankDetailLine: {
       marginBottom: 0.5,
@@ -485,6 +502,8 @@ const Quotation = () => {
             <Text style={styles.bankDetailLine}>IFSC Code: BARB0DBBLUC</Text>
             <Text style={styles.bankDetailLine}>MICR Code: 226012055</Text>
           </View>
+          <Text style={styles.noteTitle}>Note</Text>
+          <Text style={styles.noteText}>{quote.note || 'No note available'}</Text>
           <Text style={styles.termsTitle}>Terms and Conditions</Text>
           <Text>1. Payment due within 30 days.</Text>
           <Text>2. All services subject to terms at www.webbiify.com.</Text>
@@ -519,356 +538,395 @@ const Quotation = () => {
           Add New Quotation
         </Link>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
-            <thead>
-              <tr className="bg-gray-200 text-gray-600 uppercase text-sm sm:text-base">
-                <th className="px-4 py-2 text-left">Number</th>
-                <th className="px-4 py-2 text-left">Client</th>
-                <th className="px-4 py-2 text-left">Date</th>
-                <th className="px-4 py-2 text-left">Expired Date</th>
-                <th className="px-4 py-2 text-left">Sub Total</th>
-                <th className="px-4 py-2 text-left">Total</th>
-                <th className="px-4 py-2 text-left">Status</th>
-                <th className="px-4 py-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {quotations.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="px-4 py-2 text-center text-gray-500">
-                    No quotations available
-                  </td>
+          {loading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : (
+            <table className="w-full min-w-[800px]">
+              <thead>
+                <tr className="bg-gray-200 text-gray-600 uppercase text-sm sm:text-base">
+                  <th className="px-4 py-2 text-left">Number</th>
+                  <th className="px-4 py-2 text-left">Client</th>
+                  <th className="px-4 py-2 text-left">Date</th>
+                  <th className="px-4 py-2 text-left">Expired Date</th>
+                  <th className="px-4 py-2 text-left">Sub Total</th>
+                  <th className="px-4 py-2 text-left">Total</th>
+                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
                 </tr>
-              ) : (
-                quotations.map((quote) => (
-                  <tr key={quote._id} className="border-b hover:bg-gray-100 text-sm sm:text-base">
-                    <td className="px-4 py-2">{quote.number || 'N/A'}</td>
-                    <td className="px-4 py-2">{quote.client || 'N/A'}</td>
-                    <td className="px-4 py-2">{new Date(quote.date).toLocaleDateString()}</td>
-                    <td className="px-4 py-2">{new Date(quote.expireDate).toLocaleDateString()}</td>
-                    <td className="px-4 py-2">{parseFloat(quote.subTotal || 0).toFixed(2)}</td>
-                    <td className="px-4 py-2">{parseFloat(quote.total || 0).toFixed(2)}</td>
-                    <td className="px-4 py-2">{quote.status || 'N/A'}</td>
-                    <td className="px-4 py-2 flex space-x-2">
-                      <button
-                        onClick={() => openEditModal(quote)}
-                        className="text-blue-500 hover:text-blue-700"
-                        title="Edit"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(quote._id)}
-                        className="text-red-500 hover:text-red-700"
-                        title="Delete"
-                      >
-                        Delete
-                      </button>
-                      <button
-                        onClick={() => openDetailsModal(quote)}
-                        className="text-purple-500 hover:text-purple-700"
-                        title="Details"
-                      >
-                        Details
-                      </button>
-                      <button
-                        onClick={() => handleDownload(quote)}
-                        className="text-green-500 hover:text-green-700"
-                        title="Download"
-                      >
-                        Download
-                      </button>
+              </thead>
+              <tbody>
+                {quotations.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="px-4 py-2 text-center text-gray-500">
+                      No quotations available
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  quotations.map((quote, index) => (
+                    <motion.tr
+                      key={quote._id}
+                      className="border-b hover:bg-gray-100 text-sm sm:text-base"
+                      custom={index}
+                      variants={rowVariants}
+                      initial="hidden"
+                      animate="visible"
+                    >
+                      <td className="px-4 py-2">{quote.number || 'N/A'}</td>
+                      <td className="px-4 py-2">{quote.client || 'N/A'}</td>
+                      <td className="px-4 py-2">{new Date(quote.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-2">{new Date(quote.expireDate).toLocaleDateString()}</td>
+                      <td className="px-4 py-2">{parseFloat(quote.subTotal || 0).toFixed(2)}</td>
+                      <td className="px-4 py-2">{parseFloat(quote.total || 0).toFixed(2)}</td>
+                      <td className="px-4 py-2">{quote.status || 'N/A'}</td>
+                      <td className="px-4 py-2 flex space-x-2">
+                        <motion.button
+                          onClick={() => openEditModal(quote)}
+                          className="text-blue-500 hover:text-blue-700 flex items-center"
+                          title="Edit"
+                        >
+                          <PencilIcon className="h-5 w-5 mr-1" />
+                          Edit
+                        </motion.button>
+                        <motion.button
+                          onClick={() => handleDelete(quote._id)}
+                          className="text-red-500 hover:text-red-700 flex items-center"
+                          title="Delete"
+                        >
+                          <TrashIcon className="h-5 w-5 mr-1" />
+                          Delete
+                        </motion.button>
+                        <motion.button
+                          onClick={() => openDetailsModal(quote)}
+                          className="text-purple-500 hover:text-purple-700 flex items-center"
+                          title="Details"
+                        >
+                          <EyeIcon className="h-5 w-5 mr-1" />
+                          Details
+                        </motion.button>
+                        <motion.button
+                          onClick={() => handleDownload(quote)}
+                          className="text-green-500 hover:text-green-700 flex items-center"
+                          title="Download"
+                        >
+                          <ArrowDownTrayIcon className="h-5 w-5 mr-1" />
+                          Download
+                        </motion.button>
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
       {/* Edit Modal */}
-      {editModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Edit Quotation</h2>
-            <form onSubmit={handleEditSubmit}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium">Number</label>
-                  <input
-                    type="text"
-                    name="number"
-                    value={formData.number}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Client</label>
-                  <select
-                    name="client"
-                    value={formData.client}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                    required
-                  >
-                    <option value="">Select Client</option>
-                    {customers.map((customer) => (
-                      <option key={customer._id} value={customer.name}>
-                        {customer.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Date</label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Expire Date</label>
-                  <input
-                    type="date"
-                    name="expireDate"
-                    value={formData.expireDate}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Sub Total</label>
-                  <input
-                    type="number"
-                    name="subTotal"
-                    value={formData.subTotal}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Tax</label>
-                  <input
-                    type="number"
-                    name="tax"
-                    value={formData.tax}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Total</label>
-                  <input
-                    type="number"
-                    name="total"
-                    value={formData.total}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Status</label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                    required
-                  >
-                    <option value="Draft">Draft</option>
-                    <option value="Sent">Sent</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Declined">Declined</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Year</label>
-                  <input
-                    type="text"
-                    name="year"
-                    value={formData.year}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Currency</label>
-                  <input
-                    type="text"
-                    name="currency"
-                    value={formData.currency}
-                    onChange={handleFormChange}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium">Items</label>
-                {formData.items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-4 gap-2 mb-2">
+      <AnimatePresence>
+        {editModal && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <motion.div
+              className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+              variants={modalVariants}
+            >
+              <h2 className="text-xl font-bold mb-4">Edit Quotation</h2>
+              <form onSubmit={handleEditSubmit}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium">Number</label>
                     <input
                       type="text"
-                      placeholder="Item"
-                      value={item.item}
-                      onChange={(e) => handleItemChange(index, 'item', e.target.value)}
-                      className="p-2 border rounded"
-                      required
-                    />
-                    <input
-                      type="number"
-                      placeholder="Quantity"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
-                      className="p-2 border rounded"
-                      required
-                    />
-                    <input
-                      type="number"
-                      placeholder="Price"
-                      value={item.price}
-                      onChange={(e) => handleItemChange(index, 'price', parseFloat(e.target.value))}
-                      className="p-2 border rounded"
-                      required
-                    />
-                    <input
-                      type="number"
-                      placeholder="Total"
-                      value={item.total}
-                      onChange={(e) => handleItemChange(index, 'total', parseFloat(e.target.value))}
-                      className="p-2 border rounded"
+                      name="number"
+                      value={formData.number}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
                       required
                     />
                   </div>
-                ))}
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium">Note</label>
-                <textarea
-                  name="note"
-                  value={formData.note}
-                  onChange={handleFormChange}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setEditModal(false)}
-                  className="py-2 px-4 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                  <div>
+                    <label className="block text-sm font-medium">Client</label>
+                    <select
+                      name="client"
+                      value={formData.client}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    >
+                      <option value="">Select Client</option>
+                      {customers.map((customer) => (
+                        <option key={customer._id} value={customer.name}>
+                          {customer.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Date</label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Expire Date</label>
+                    <input
+                      type="date"
+                      name="expireDate"
+                      value={formData.expireDate}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Sub Total</label>
+                    <input
+                      type="number"
+                      name="subTotal"
+                      value={formData.subTotal}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Tax</label>
+                    <input
+                      type="number"
+                      name="tax"
+                      value={formData.tax}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Total</label>
+                    <input
+                      type="number"
+                      name="total"
+                      value={formData.total}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Status</label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    >
+                      <option value="Draft">Draft</option>
+                      <option value="Sent">Sent</option>
+                      <option value="Accepted">Accepted</option>
+                      <option value="Declined">Declined</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Year</label>
+                    <input
+                      type="text"
+                      name="year"
+                      value={formData.year}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Currency</label>
+                    <input
+                      type="text"
+                      name="currency"
+                      value={formData.currency}
+                      onChange={handleFormChange}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium">Items</label>
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="grid grid-cols-4 gap-2 mb-2">
+                      <input
+                        type="text"
+                        placeholder="Item"
+                        value={item.item}
+                        onChange={(e) => handleItemChange(index, 'item', e.target.value)}
+                        className="p-2 border rounded"
+                        required
+                      />
+                      <input
+                        type="number"
+                        placeholder="Quantity"
+                        value={item.quantity}
+                        onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+                        className="p-2 border rounded"
+                        required
+                      />
+                      <input
+                        type="number"
+                        placeholder="Price"
+                        value={item.price}
+                        onChange={(e) => handleItemChange(index, 'price', parseFloat(e.target.value))}
+                        className="p-2 border rounded"
+                        required
+                      />
+                      <input
+                        type="number"
+                        placeholder="Total"
+                        value={item.total}
+                        onChange={(e) => handleItemChange(index, 'total', parseFloat(e.target.value))}
+                        className="p-2 border rounded"
+                        required
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium">Note</label>
+                  <textarea
+                    name="note"
+                    value={formData.note}
+                    onChange={handleFormChange}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <motion.button
+                    type="button"
+                    onClick={() => setEditModal(false)}
+                    className="py-2 px-4 bg-gray-300 rounded hover:bg-gray-400"
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    type="submit"
+                    className="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Save
+                  </motion.button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Details Modal */}
-      {detailsModal && selectedQuote && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Quotation Details</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="font-medium">Quotation No:</p>
-                <p>{selectedQuote.quotationNo || 'N/A'}</p>
+      <AnimatePresence>
+        {detailsModal && selectedQuote && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <motion.div
+              className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+              variants={modalVariants}
+            >
+              <h2 className="text-xl font-bold mb-4">Quotation Details</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="font-medium">Quotation No:</p>
+                  <p>{selectedQuote.quotationNo || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Number:</p>
+                  <p>{selectedQuote.number || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Client:</p>
+                  <p>{selectedQuote.client || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Date:</p>
+                  <p>{new Date(selectedQuote.date).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Expire Date:</p>
+                  <p>{new Date(selectedQuote.expireDate).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Sub Total:</p>
+                  <p>{parseFloat(selectedQuote.subTotal || 0).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Tax:</p>
+                  <p>{parseFloat(selectedQuote.tax || 0).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Total:</p>
+                  <p>{parseFloat(selectedQuote.total || 0).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Status:</p>
+                  <p>{selectedQuote.status || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Year:</p>
+                  <p>{selectedQuote.year || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Currency:</p>
+                  <p>{selectedQuote.currency || 'N/A'}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium">Number:</p>
-                <p>{selectedQuote.number || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Client:</p>
-                <p>{selectedQuote.client || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Date:</p>
-                <p>{new Date(selectedQuote.date).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className="font-medium">Expire Date:</p>
-                <p>{new Date(selectedQuote.expireDate).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className="font-medium">Sub Total:</p>
-                <p>{parseFloat(selectedQuote.subTotal || 0).toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="font-medium">Tax:</p>
-                <p>{parseFloat(selectedQuote.tax || 0).toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="font-medium">Total:</p>
-                <p>{parseFloat(selectedQuote.total || 0).toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="font-medium">Status:</p>
-                <p>{selectedQuote.status || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Year:</p>
-                <p>{selectedQuote.year || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Currency:</p>
-                <p>{selectedQuote.currency || 'N/A'}</p>
-              </div>
-            </div>
-            <div className="mb-4">
-              <p className="font-medium">Items:</p>
-              <table className="w-full border">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="p-2 border">Item</th>
-                    <th className="p-2 border">Quantity</th>
-                    <th className="p-2 border">Price</th>
-                    <th className="p-2 border">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedQuote.items.map((item, index) => (
-                    <tr key={index}>
-                      <td className="p-2 border">{item.item || 'N/A'}</td>
-                      <td className="p-2 border">{item.quantity || 0}</td>
-                      <td className="p-2 border">{parseFloat(item.price || 0).toFixed(2)}</td>
-                      <td className="p-2 border">{parseFloat(item.total || 0).toFixed(2)}</td>
+              <div className="mb-4">
+                <p className="font-medium">Items:</p>
+                <table className="w-full border">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="p-2 border">Item</th>
+                      <th className="p-2 border">Quantity</th>
+                      <th className="p-2 border">Price</th>
+                      <th className="p-2 border">Total</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mb-4">
-              <p className="font-medium">Note:</p>
-              <p>{selectedQuote.note || 'N/A'}</p>
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setDetailsModal(false)}
-                className="py-2 px-4 bg-gray-300 rounded hover:bg-gray-400"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                  </thead>
+                  <tbody>
+                    {selectedQuote.items.map((item, index) => (
+                      <tr key={index}>
+                        <td className="p-2 border">{item.item || 'N/A'}</td>
+                        <td className="p-2 border">{item.quantity || 0}</td>
+                        <td className="p-2 border">{parseFloat(item.price || 0).toFixed(2)}</td>
+                        <td className="p-2 border">{parseFloat(item.total || 0).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mb-4">
+                <p className="font-medium">Note:</p>
+                <p>{selectedQuote.note || 'N/A'}</p>
+              </div>
+              <div className="flex justify-end">
+                <motion.button
+                  onClick={() => setDetailsModal(false)}
+                  className="py-2 px-4 bg-gray-300 rounded hover:bg-gray-400"
+                >
+                  Close
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

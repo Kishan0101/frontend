@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { FiHome, FiUsers, FiFileText, FiUser, FiLogOut } from 'react-icons/fi';
 import logo from '../components/Assests/Webbiify.png';
 
 const Sidebar = () => {
@@ -37,11 +38,7 @@ const Sidebar = () => {
       >
         {/* Logo */}
         <div className="mb-6">
-          <img
-            src={logo}
-            alt="Logo"
-            className="h-10 sm:h-12 w-auto"
-          />
+          <img src={logo} alt="Logo" className="h-10 sm:h-12 w-auto" />
         </div>
         {/* User Section */}
         <div className="mb-6">
@@ -54,11 +51,12 @@ const Sidebar = () => {
                 to="/dashboard"
                 className={({ isActive }) =>
                   isActive
-                    ? 'block p-2 bg-gray-200 rounded text-sm sm:text-base'
-                    : 'block p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
+                    ? 'flex items-center p-2 bg-gray-200 rounded text-sm sm:text-base'
+                    : 'flex items-center p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
                 }
                 onClick={() => setIsOpen(false)}
               >
+                <FiHome className="mr-2 text-gray-600" />
                 Dashboard
               </NavLink>
             </li>
@@ -67,11 +65,12 @@ const Sidebar = () => {
                 to="/customers"
                 className={({ isActive }) =>
                   isActive
-                    ? 'block p-2 bg-gray-200 rounded text-sm sm:text-base'
-                    : 'block p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
+                    ? 'flex items-center p-2 bg-gray-200 rounded text-sm sm:text-base'
+                    : 'flex items-center p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
                 }
                 onClick={() => setIsOpen(false)}
               >
+                <FiUsers className="mr-2 text-gray-600" />
                 Customers
               </NavLink>
             </li>
@@ -80,11 +79,12 @@ const Sidebar = () => {
                 to="/quotations"
                 className={({ isActive }) =>
                   isActive
-                    ? 'block p-2 bg-gray-200 rounded text-sm sm:text-base'
-                    : 'block p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
+                    ? 'flex items-center p-2 bg-gray-200 rounded text-sm sm:text-base'
+                    : 'flex items-center p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
                 }
                 onClick={() => setIsOpen(false)}
               >
+                <FiFileText className="mr-2 text-gray-600" />
                 Quotations
               </NavLink>
             </li>
@@ -93,19 +93,21 @@ const Sidebar = () => {
                 to="/profile"
                 className={({ isActive }) =>
                   isActive
-                    ? 'block p-2 bg-gray-200 rounded text-sm sm:text-base'
-                    : 'block p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
+                    ? 'flex items-center p-2 bg-gray-200 rounded text-sm sm:text-base'
+                    : 'flex items-center p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
                 }
                 onClick={() => setIsOpen(false)}
               >
+                <FiUser className="mr-2 text-gray-600" />
                 Users
               </NavLink>
             </li>
             <li className="mb-2">
               <button
                 onClick={handleLogout}
-                className="block w-full text-left p-2 hover:bg-gray-200 rounded text-sm sm:text-base"
+                className="flex items-center w-full text-left p-2 hover:bg-gray-200 rounded text-sm sm:text-base"
               >
+                <FiLogOut className="mr-2 text-gray-600" />
                 Logout
               </button>
             </li>
