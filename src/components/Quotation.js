@@ -168,7 +168,7 @@ const Quotation = () => {
       fontSize: 12,
       fontWeight: 'bold',
       marginBottom: 1,
-      marginTop: 10, // Added spacing before Terms and Conditions
+      marginTop: 150, // Added spacing before Terms and Conditions
     },
     table: {
       display: 'table',
@@ -211,10 +211,10 @@ const Quotation = () => {
       marginBottom: 5,
     },
     bankImage: {
-      width: 45,
-      height: 45,
+      width: 90,
+      height: 90,
       marginRight: 180,
-      marginTop: 90,
+      marginTop: 20,
     },
     amountBox: {
       border: '1px solid #0b0337',
@@ -247,7 +247,8 @@ const Quotation = () => {
       height: 90,
     },
     bankDetails: {
-      marginBottom: 3,
+      marginBottom: 40,
+
     },
     bankDetailLine: {
       marginBottom: 0.5,
@@ -340,10 +341,10 @@ const Quotation = () => {
                 <Text style={[styles.tableCell, { width: '30%' }]}>{item.item || 'N/A'}</Text>
                 <Text style={[styles.tableCell, { width: '10%' }]}>{item.hsnSac || 'N/A'}</Text>
                 <Text style={[styles.tableCell, { width: '10%' }]}>{item.quantity || 0}</Text>
-                <Text style={[styles.tableCell, { width: '12%' }]}>₹{parseFloat(item.price || 0).toFixed(2)}</Text>
+                <Text style={[styles.tableCell, { width: '12%' }]}>{parseFloat(item.price || 0).toFixed(2)}</Text>
                 <Text style={[styles.tableCell, { width: '10%' }]}>{parseFloat(item.sgst || 0)}%</Text>
                 <Text style={[styles.tableCell, { width: '10%' }]}>{parseFloat(item.igst || 0)}%</Text>
-                <Text style={[styles.tableCellLast, { width: '12%' }]}>₹{parseFloat(item.total || 0).toFixed(2)}</Text>
+                <Text style={[styles.tableCellLast, { width: '12%' }]}>{parseFloat(item.total || 0).toFixed(2)}</Text>
               </View>
             ))}
           </View>
@@ -356,19 +357,19 @@ const Quotation = () => {
                 <Text style={styles.sectionTitle}>Amount Details</Text>
                 <View style={styles.amountLine}>
                   <Text>Subtotal:</Text>
-                  <Text>₹{parseFloat(quote.subTotal || 0).toFixed(2)}</Text>
+                  <Text>{parseFloat(quote.subTotal || 0).toFixed(2)}</Text>
                 </View>
                 <View style={styles.amountLine}>
                   <Text>SGST:</Text>
-                  <Text>₹{sgstTotal.toFixed(2)}</Text>
+                  <Text>{sgstTotal.toFixed(2)}</Text>
                 </View>
                 <View style={styles.amountLine}>
                   <Text>CGST:</Text>
-                  <Text>₹{cgstTotal.toFixed(2)}</Text>
+                  <Text>{cgstTotal.toFixed(2)}</Text>
                 </View>
                 <View style={[styles.amountLine, styles.amountTotal]}>
                   <Text>Total:</Text>
-                  <Text>₹{(parseFloat(quote.subTotal || 0) + sgstTotal + cgstTotal).toFixed(2)}</Text>
+                  <Text>{(parseFloat(quote.subTotal || 0) + sgstTotal + cgstTotal).toFixed(2)}</Text>
                 </View>
               </View>
             </View>
@@ -452,8 +453,8 @@ const Quotation = () => {
                     <td className="px-4 py-2">{quote.client || 'N/A'}</td>
                     <td className="px-4 py-2">{new Date(quote.date).toLocaleDateString()}</td>
                     <td className="px-4 py-2">{new Date(quote.expireDate).toLocaleDateString()}</td>
-                    <td className="px-4 py-2">₹{parseFloat(quote.subTotal || 0).toFixed(2)}</td>
-                    <td className="px-4 py-2">₹{parseFloat(quote.total || 0).toFixed(2)}</td>
+                    <td className="px-4 py-2">{parseFloat(quote.subTotal || 0).toFixed(2)}</td>
+                    <td className="px-4 py-2">{parseFloat(quote.total || 0).toFixed(2)}</td>
                     <td className="px-4 py-2">{quote.status || 'N/A'}</td>
                     <td className="px-4 py-2 flex space-x-2">
                       <Link
