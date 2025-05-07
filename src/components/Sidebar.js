@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FiHome, FiUsers, FiFileText, FiUser, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiUsers, FiFileText, FiUser, FiLogOut, FiDollarSign, FiUserPlus, FiCreditCard } from 'react-icons/fi';
 import logo from '../components/Assests/Webbiify.png';
 
 const Sidebar = () => {
@@ -11,7 +11,7 @@ const Sidebar = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      const user = { name: 'John Doe' };
+      const user = { name: 'John Doe' }; // Placeholder user data
       setUserName(user.name || 'User');
     }
   }, []);
@@ -90,7 +90,49 @@ const Sidebar = () => {
             </li>
             <li className="mb-2">
               <NavLink
-                to="/profile"
+                to="/payments"
+                className={({ isActive }) =>
+                  isActive
+                    ? 'flex items-center p-2 bg-gray-200 rounded text-sm sm:text-base'
+                    : 'flex items-center p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
+                }
+                onClick={() => setIsOpen(false)}
+              >
+                <FiDollarSign className="mr-2 text-gray-600" />
+                Payments
+              </NavLink>
+            </li>
+            <li className="mb-2">
+              <NavLink
+                to="/leads"
+                className={({ isActive }) =>
+                  isActive
+                    ? 'flex items-center p-2 bg-gray-200 rounded text-sm sm:text-base'
+                    : 'flex items-center p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
+                }
+                onClick={() => setIsOpen(false)}
+              >
+                <FiUserPlus className="mr-2 text-gray-600" />
+                Leads
+              </NavLink>
+            </li>
+            <li className="mb-2">
+              <NavLink
+                to="/expenses"
+                className={({ isActive }) =>
+                  isActive
+                    ? 'flex items-center p-2 bg-gray-200 rounded text-sm sm:text-base'
+                    : 'flex items-center p-2 hover:bg-gray-200 rounded text-sm sm:text-base'
+                }
+                onClick={() => setIsOpen(false)}
+              >
+                <FiCreditCard className="mr-2 text-gray-600" />
+                Expenses
+              </NavLink>
+            </li>
+            <li className="mb-2">
+              <NavLink
+                to="/users"
                 className={({ isActive }) =>
                   isActive
                     ? 'flex items-center p-2 bg-gray-200 rounded text-sm sm:text-base'
