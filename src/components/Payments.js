@@ -12,7 +12,7 @@ const Payments = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (retryCount = 0, maxRetries = 3, delay = 2000) => {
     try {
       const token = localStorage.getItem('token');
       console.log('Fetching payments with token:', token);
@@ -32,6 +32,15 @@ const Payments = () => {
       }
       const data = await response.json();
       console.log('Fetched payments data:', data);
+      
+      // If data is empty, we're expecting a refresh, and we haven't exceeded retries, try again
+      const params = new URLSearchParams(location.search);
+      if (Array.isArray(data) && data.length === 0 && params.get('refresh') === 'true' && retryCount < maxRetries) {
+        console.log(`Payments empty, retrying (${retryCount + 1}/${maxRetries}) after ${delay}ms...`);
+        setTimeout(() => fetchPayments(retryCount + 1, maxRetries, delay), delay);
+        return;
+      }
+
       setPayments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -42,12 +51,6 @@ const Payments = () => {
 
   useEffect(() => {
     fetchPayments();
-    // Check if navigated here after a quotation update
-    const params = new URLSearchParams(location.search);
-    if (params.get('refresh') === 'true') {
-      console.log('Refreshing payments due to recent quotation update');
-      fetchPayments();
-    }
   }, [navigate, location]);
 
   const handleRefresh = () => {
@@ -341,14 +344,13 @@ const Payments = () => {
 
       <AnimatePresence>
         {showModal && selectedPayment && (
-            <motion.div
-  className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-  variants={modalVariants}
-  initial="hidden"
-  animate="visible"
-  exit="exit"
->
-
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
             <motion.div
               className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md"
               variants={modalVariants}
