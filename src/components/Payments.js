@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EyeIcon, PencilIcon, TrashIcon, CurrencyRupeeIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PencilIcon, TrashIcon, CurrencyRupeeIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
@@ -10,33 +10,49 @@ const Payments = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const fetchPayments = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching payments with token:', token);
+      if (!token) {
+        console.log('No token found, navigating to login');
+        navigate('/login');
+        return;
+      }
+      const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/payments', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('Fetch response status:', response.status);
+      if (!response.ok) {
+        throw new Error('Failed to fetch payments');
+      }
+      const data = await response.json();
+      console.log('Fetched payments data:', data);
+      setPayments(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      setPayments([]);
+      setError('Failed to load payments');
+    }
+  };
 
   useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-        const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/payments', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch payments');
-        }
-        const data = await response.json();
-        setPayments(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Error fetching payments:', error);
-        setPayments([]);
-        setError('Failed to load payments');
-      }
-    };
     fetchPayments();
-  }, [navigate]);
+    // Check if navigated here after a quotation update
+    const params = new URLSearchParams(location.search);
+    if (params.get('refresh') === 'true') {
+      console.log('Refreshing payments due to recent quotation update');
+      fetchPayments();
+    }
+  }, [navigate, location]);
+
+  const handleRefresh = () => {
+    fetchPayments();
+  };
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -225,7 +241,17 @@ const Payments = () => {
     <div className="p-4 sm:p-6 md:p-8 lg:p-10">
       <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">Payments</h1>
       <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-        <h2 className="text-base sm:text-lg md:text-xl font-bold mb-2">Payment List</h2>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-base sm:text-lg md:text-xl font-bold">Payment List</h2>
+          <motion.button
+            onClick={handleRefresh}
+            className="text-gray-600 hover:text-gray-800 flex items-center text-xs sm:text-sm"
+            title="Refresh"
+          >
+            <ArrowPathIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-1 inline-block align-middle" />
+            Refresh
+          </motion.button>
+        </div>
         <Link
           to="/payments/new"
           className="mb-4 inline-block bg-[#2F80ED] text-white py-2 px-4 rounded-lg hover:bg-blue-700 text-xs sm:text-sm md:text-base transition-colors duration-200"
@@ -315,13 +341,14 @@ const Payments = () => {
 
       <AnimatePresence>
         {showModal && selectedPayment && (
-          <motion.div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-          >
+            <motion.div
+  className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+  variants={modalVariants}
+  initial="hidden"
+  animate="visible"
+  exit="exit"
+>
+
             <motion.div
               className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md"
               variants={modalVariants}
