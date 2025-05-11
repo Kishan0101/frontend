@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 const PaymentForm = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    quotationId: '',
     customerName: '',
     companyName: '',
     address: '',
@@ -62,6 +63,7 @@ const PaymentForm = () => {
       } else {
         setFormData({
           ...formData,
+          quotationId: '',
           customerName: value,
           companyName: '',
           address: '',
@@ -98,6 +100,7 @@ const PaymentForm = () => {
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
         setFormData({
           ...formData,
+          quotationId: customerQuotation ? customerQuotation._id : '',
           customerName: customer.name,
           companyName: customer.name || '',
           address: customer.address || '',
@@ -116,6 +119,7 @@ const PaymentForm = () => {
         console.error('Failed to fetch quotations');
         setFormData({
           ...formData,
+          quotationId: '',
           customerName: customer.name,
           companyName: customer.name || '',
           address: customer.address || '',
@@ -135,6 +139,7 @@ const PaymentForm = () => {
       console.error('Error fetching quotations:', error);
       setFormData({
         ...formData,
+        quotationId: '',
         customerName: customer.name,
         companyName: customer.name || '',
         address: customer.address || '',
@@ -168,6 +173,11 @@ const PaymentForm = () => {
           subTotal: parseFloat(formData.subTotal) || 0,
           tax: parseFloat(formData.tax) || 0,
           total: parseFloat(formData.total) || 0,
+          items: formData.items.map(item => ({
+            item: item.item,
+            quantity: parseFloat(item.quantity) || 0,
+            price: parseFloat(item.price) || 0,
+          })),
         }),
       });
       if (response.ok) {
