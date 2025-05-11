@@ -1,7 +1,166 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EyeIcon, PencilIcon, TrashIcon, CurrencyRupeeIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PencilIcon, TrashIcon, CurrencyRupeeIcon, ArrowPathIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import logo from '../components/Assests/Webbiify.png';
+
+// PDF Invoice Styles
+const styles = StyleSheet.create({
+  page: {
+    padding: 30,
+    fontSize: 12,
+    fontFamily: 'Helvetica',
+  },
+  header: {
+    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  companyDetails: {
+    marginBottom: 10,
+  },
+  companyName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  invoiceTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'right',
+  },
+  invoiceDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  billTo: {
+    marginBottom: 20,
+  },
+  table: {
+    border: '1 solid black',
+    marginBottom: 20,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottom: '1 solid black',
+  },
+  tableHeader: {
+    backgroundColor: '#f0f0f0',
+    fontWeight: 'bold',
+  },
+  tableCell: {
+    padding: 5,
+    flex: 1,
+    borderRight: '1 solid black',
+  },
+  lastCell: {
+    borderRight: 'none',
+  },
+  totals: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  totalLabel: {
+    width: 100,
+    textAlign: 'right',
+    marginRight: 10,
+  },
+  totalValue: {
+    width: 100,
+    textAlign: 'right',
+  },
+  logo: {
+    width: 100,
+    height: 50,
+  },
+});
+
+// PDF Invoice Component
+const InvoicePDF = ({ payment }) => (
+  <Document>
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header}>
+        <View style={styles.companyDetails}>
+          <Image src={logo} style={styles.logo} />
+          <Text style={styles.companyName}>Webbiify Infotech</Text>
+          <Text>Barabanki Lucknow U.P.</Text>
+          <Text>226001</Text>
+          <Text>Phone: 9005143988</Text>
+          <Text>Website: www.webbiify.com</Text>
+        </View>
+        <Text style={styles.invoiceTitle}>INVOICE</Text>
+      </View>
+      <View style={styles.invoiceDetails}>
+        <View>
+          <Text>INVOICE #: {payment.quotationNo || 'N/A'}</Text>
+          <Text>CUSTOMER ID: [123456]</Text>
+          <Text>DUE DATE: 10/06/2025</Text>
+        </View>
+      </View>
+      <View style={styles.billTo}>
+        <Text>BILL TO</Text>
+        <Text>Mozafia</Text>
+        <Text>Gurgaon</Text>
+        <Text>8789558053</Text>
+      </View>
+      <View style={styles.table}>
+        <View style={[styles.tableRow, styles.tableHeader]}>
+          <Text style={[styles.tableCell, { flex: 2 }]}>DESCRIPTION</Text>
+          <Text style={styles.tableCell}>UNIT PRICE</Text>
+          <Text style={styles.tableCell}>QTY</Text>
+          <Text style={styles.tableCell}>TAXED</Text>
+          <Text style={[styles.tableCell, styles.lastCell]}>AMOUNT</Text>
+        </View>
+        {payment.items?.length ? (
+          payment.items.map((item, index) => (
+            <View key={index} style={styles.tableRow}>
+              <Text style={[styles.tableCell, { flex: 2 }]}>{item.item}</Text>
+              <Text style={styles.tableCell}>{item.price.toFixed(2)}</Text>
+              <Text style={styles.tableCell}>{item.quantity}</Text>
+              <Text style={styles.tableCell}>{index === 2 ? 'X' : ''}</Text>
+              <Text style={[styles.tableCell, styles.lastCell]}>
+                {(item.price * item.quantity).toFixed(2)}
+              </Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.tableRow}>
+            <Text style={[styles.tableCell, { flex: 2 }]}>No items</Text>
+            <Text style={styles.tableCell}>-</Text>
+            <Text style={styles.tableCell}>-</Text>
+            <Text style={styles.tableCell}>-</Text>
+            <Text style={[styles.tableCell, styles.lastCell]}>-</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.totals}>
+        <View>
+          <View style={{ flexDirection: 'row', marginBottom: 5 }}>
+            <Text style={styles.totalLabel}>Sub Total:</Text>
+            <Text style={styles.totalValue}>
+              {payment.subTotal ? `${payment.subTotal.toFixed(2)}` : 'N/A'}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', marginBottom: 5 }}>
+            <Text style={styles.totalLabel}>Tax:</Text>
+            <Text style={styles.totalValue}>
+              {payment.tax ? `${payment.tax.toFixed(2)}` : 'N/A'}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row' }}>
+            <Text style={styles.totalLabel}>Total:</Text>
+            <Text style={styles.totalValue}>
+              {payment.total ? `${payment.total.toFixed(2)}` : 'N/A'}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Page>
+  </Document>
+);
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
@@ -313,7 +472,7 @@ const Payments = () => {
                   >
                     <td className="px-3 sm:px-4 py-2">{payment.customerName || 'N/A'}</td>
                     <td className="px-3 sm:px-4 py-2">{payment.quotationNo || 'N/A'}</td>
-                    <td className="px-3 sm:px-4 py-2">{payment.amount ? `₹${payment.amount.toFixed(2)}` : 'N/A'}</td>
+                    <td className="px-3 sm:px-4 py-2">{payment.amount ? `${payment.amount.toFixed(2)}` : 'N/A'}</td>
                     <td className="px-3 sm:px-4 py-2">{payment.date ? new Date(payment.date).toLocaleDateString() : 'N/A'}</td>
                     <td className="px-3 sm:px-4 py-2">{payment.status || 'N/A'}</td>
                     <td className="px-3 sm:px-4 py-2 flex space-x-2">
@@ -351,6 +510,19 @@ const Payments = () => {
                         <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-1 inline-block align-middle" />
                         Delete
                       </motion.button>
+                      <PDFDownloadLink
+                        document={<InvoicePDF payment={payment} />}
+                        fileName={`invoice-${payment.quotationNo || payment._id}.pdf`}
+                        className="text-yellow-600 hover:text-yellow-800 flex items-center text-xs sm:text-sm"
+                        title="Download Invoice"
+                      >
+                        {({ loading }) => (
+                          <motion.button disabled={loading}>
+                            <DocumentArrowDownIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-1 inline-block align-middle" />
+                            {loading ? 'Generating...' : 'Invoice'}
+                          </motion.button>
+                        )}
+                      </PDFDownloadLink>
                     </td>
                   </motion.tr>
                 ))
@@ -564,10 +736,10 @@ const Payments = () => {
                   <p className="mb-2"><strong>Phone:</strong> {selectedPayment.phone || 'N/A'}</p>
                   <p className="mb-2"><strong>Quotation Number:</strong> {selectedPayment.quotationNo || 'N/A'}</p>
                   <p className="mb-2"><strong>Items:</strong> {selectedPayment.items?.length ? selectedPayment.items.map(item => `${item.item} (Qty: ${item.quantity}, Price: ${item.price})`).join(', ') : 'N/A'}</p>
-                  <p className="mb-2"><strong>Sub Total:</strong> {selectedPayment.subTotal ? `₹${selectedPayment.subTotal.toFixed(2)}` : 'N/A'}</p>
-                  <p className="mb-2"><strong>Tax:</strong> {selectedPayment.tax ? `₹${selectedPayment.tax.toFixed(2)}` : 'N/A'}</p>
-                  <p className="mb-2"><strong>Total:</strong> {selectedPayment.total ? `₹${selectedPayment.total.toFixed(2)}` : 'N/A'}</p>
-                  <p className="mb-2"><strong>Amount:</strong> {selectedPayment.amount ? `₹${selectedPayment.amount.toFixed(2)}` : 'N/A'}</p>
+                  <p className="mb-2"><strong>Sub Total:</strong> {selectedPayment.subTotal ? `${selectedPayment.subTotal.toFixed(2)}` : 'N/A'}</p>
+                  <p className="mb-2"><strong>Tax:</strong> {selectedPayment.tax ? `${selectedPayment.tax.toFixed(2)}` : 'N/A'}</p>
+                  <p className="mb-2"><strong>Total:</strong> {selectedPayment.total ? `${selectedPayment.total.toFixed(2)}` : 'N/A'}</p>
+                  <p className="mb-2"><strong>Amount:</strong> {selectedPayment.amount ? `${selectedPayment.amount.toFixed(2)}` : 'N/A'}</p>
                   <p className="mb-2"><strong>Date:</strong> {selectedPayment.date ? new Date(selectedPayment.date).toLocaleDateString() : 'N/A'}</p>
                   <p className="mb-2"><strong>Status:</strong> {selectedPayment.status || 'N/A'}</p>
                   <p className="mb-2"><strong>Year:</strong> {selectedPayment.year || 'N/A'}</p>
