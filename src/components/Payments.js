@@ -32,7 +32,7 @@ const Payments = () => {
       }
       const data = await response.json();
       console.log('Fetched payments data:', data);
-      
+
       // If data is empty, we're expecting a refresh, and we haven't exceeded retries, try again
       const params = new URLSearchParams(location.search);
       if (Array.isArray(data) && data.length === 0 && params.get('refresh') === 'true' && retryCount < maxRetries) {
@@ -99,7 +99,7 @@ const Payments = () => {
         amount: order.amount,
         currency: order.currency,
         name: 'Webbiify Payments',
-        description: `Payment for Quotation`,
+        description: `Payment for Quotation ${payment.quotationNo || ''}`,
         order_id: order.orderId,
         handler: async (response) => {
           try {
@@ -110,11 +110,10 @@ const Payments = () => {
                 Authorization: `Bearer ${token}`,
               },
               body: JSON.stringify({
-                customerName: payment.customerName,
-                amount: payment.amount,
-                date: payment.date,
+                ...payment, // Include all existing fields
                 status: 'Completed',
                 razorpayPaymentId: response.razorpay_payment_id,
+                razorpayOrderId: response.razorpay_order_id,
               }),
             });
 
@@ -125,6 +124,8 @@ const Payments = () => {
                   p._id === updatedPayment._id ? updatedPayment : p
                 )
               );
+            } else {
+              throw new Error('Failed to update payment status');
             }
           } catch (error) {
             console.error('Error updating payment status:', error);
@@ -173,7 +174,11 @@ const Payments = () => {
   };
 
   const handleEdit = (payment) => {
-    setSelectedPayment({ ...payment });
+    setSelectedPayment({
+      ...payment,
+      items: payment.items || [], // Ensure items is an array
+      date: payment.date ? new Date(payment.date).toISOString().split('T')[0] : '', // Format date for input
+    });
     setIsEditMode(true);
     setShowModal(true);
   };
@@ -199,7 +204,18 @@ const Payments = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(selectedPayment),
+        body: JSON.stringify({
+          ...selectedPayment,
+          amount: parseFloat(selectedPayment.amount) || 0,
+          subTotal: parseFloat(selectedPayment.subTotal) || 0,
+          tax: parseFloat(selectedPayment.tax) || 0,
+          total: parseFloat(selectedPayment.total) || 0,
+          items: selectedPayment.items.map(item => ({
+            item: item.item,
+            quantity: parseFloat(item.quantity) || 0,
+            price: parseFloat(item.price) || 0,
+          })),
+        }),
       });
       if (response.ok) {
         const updatedPayment = await response.json();
@@ -271,6 +287,7 @@ const Payments = () => {
             <thead>
               <tr className="bg-gray-200 text-gray-600">
                 <th className="px-3 sm:px-4 py-2 text-left">Customer Name</th>
+                <th className="px-3 sm:px-4 py-2 text-left">Quotation No</th>
                 <th className="px-3 sm:px-4 py-2 text-left">Amount</th>
                 <th className="px-3 sm:px-4 py-2 text-left">Date</th>
                 <th className="px-3 sm:px-4 py-2 text-left">Status</th>
@@ -280,7 +297,7 @@ const Payments = () => {
             <tbody>
               {payments.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-3 sm:px-4 py-2 text-center text-gray-500">
+                  <td colSpan="6" className="px-3 sm:px-4 py-2 text-center text-gray-500">
                     No payments available
                   </td>
                 </tr>
@@ -295,6 +312,7 @@ const Payments = () => {
                     className="border-b hover:bg-gray-100"
                   >
                     <td className="px-3 sm:px-4 py-2">{payment.customerName || 'N/A'}</td>
+                    <td className="px-3 sm:px-4 py-2">{payment.quotationNo || 'N/A'}</td>
                     <td className="px-3 sm:px-4 py-2">{payment.amount ? `₹${payment.amount.toFixed(2)}` : 'N/A'}</td>
                     <td className="px-3 sm:px-4 py-2">{payment.date ? new Date(payment.date).toLocaleDateString() : 'N/A'}</td>
                     <td className="px-3 sm:px-4 py-2">{payment.status || 'N/A'}</td>
@@ -352,7 +370,7 @@ const Payments = () => {
             exit="exit"
           >
             <motion.div
-              className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md"
+              className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg"
               variants={modalVariants}
             >
               <h2 className="text-lg font-bold mb-4">
@@ -369,6 +387,98 @@ const Payments = () => {
                       onChange={handleInputChange}
                       className="mt-1 p-2 w-full border rounded-lg text-sm"
                       required
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Company Name</label>
+                    <input
+                      type="text"
+                      name="companyName"
+                      value={selectedPayment.companyName || ''}
+                      onChange={handleInputChange}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Address</label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={selectedPayment.address || ''}
+                      onChange={handleInputChange}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={selectedPayment.phone || ''}
+                      onChange={handleInputChange}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Quotation Number</label>
+                    <input
+                      type="text"
+                      name="quotationNo"
+                      value={selectedPayment.quotationNo || ''}
+                      onChange={handleInputChange}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Items</label>
+                    <textarea
+                      name="items"
+                      value={selectedPayment.items.map(item => `${item.item} (Qty: ${item.quantity}, Price: ${item.price})`).join('\n')}
+                      onChange={(e) => {
+                        const items = e.target.value.split('\n').map(line => {
+                          const match = line.match(/(.+)\s\(Qty:\s(\d+),\sPrice:\s(\d+\.?\d*)\)/);
+                          return match ? { item: match[1].trim(), quantity: parseFloat(match[2]), price: parseFloat(match[3]) } : null;
+                        }).filter(item => item);
+                        setSelectedPayment((prev) => ({ ...prev, items }));
+                      }}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                      rows="4"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Sub Total</label>
+                    <input
+                      type="number"
+                      name="subTotal"
+                      value={selectedPayment.subTotal || ''}
+                      onChange={handleInputChange}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Tax</label>
+                    <input
+                      type="number"
+                      name="tax"
+                      value={selectedPayment.tax || ''}
+                      onChange={handleInputChange}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Total</label>
+                    <input
+                      type="number"
+                      name="total"
+                      value={selectedPayment.total || ''}
+                      onChange={handleInputChange}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                      min="0"
+                      step="0.01"
                     />
                   </div>
                   <div className="mb-4">
@@ -389,7 +499,7 @@ const Payments = () => {
                     <input
                       type="date"
                       name="date"
-                      value={selectedPayment.date ? new Date(selectedPayment.date).toISOString().split('T')[0] : ''}
+                      value={selectedPayment.date || ''}
                       onChange={handleInputChange}
                       className="mt-1 p-2 w-full border rounded-lg text-sm"
                       required
@@ -410,6 +520,26 @@ const Payments = () => {
                       <option value="Failed">Failed</option>
                     </select>
                   </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Year</label>
+                    <input
+                      type="text"
+                      name="year"
+                      value={selectedPayment.year || ''}
+                      onChange={handleInputChange}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Currency</label>
+                    <input
+                      type="text"
+                      name="currency"
+                      value={selectedPayment.currency || ''}
+                      onChange={handleInputChange}
+                      className="mt-1 p-2 w-full border rounded-lg text-sm"
+                    />
+                  </div>
                   <div className="flex justify-end space-x-2">
                     <button
                       type="button"
@@ -429,9 +559,19 @@ const Payments = () => {
               ) : (
                 <div>
                   <p className="mb-2"><strong>Customer Name:</strong> {selectedPayment.customerName || 'N/A'}</p>
+                  <p className="mb-2"><strong>Company Name:</strong> {selectedPayment.companyName || 'N/A'}</p>
+                  <p className="mb-2"><strong>Address:</strong> {selectedPayment.address || 'N/A'}</p>
+                  <p className="mb-2"><strong>Phone:</strong> {selectedPayment.phone || 'N/A'}</p>
+                  <p className="mb-2"><strong>Quotation Number:</strong> {selectedPayment.quotationNo || 'N/A'}</p>
+                  <p className="mb-2"><strong>Items:</strong> {selectedPayment.items?.length ? selectedPayment.items.map(item => `${item.item} (Qty: ${item.quantity}, Price: ${item.price})`).join(', ') : 'N/A'}</p>
+                  <p className="mb-2"><strong>Sub Total:</strong> {selectedPayment.subTotal ? `₹${selectedPayment.subTotal.toFixed(2)}` : 'N/A'}</p>
+                  <p className="mb-2"><strong>Tax:</strong> {selectedPayment.tax ? `₹${selectedPayment.tax.toFixed(2)}` : 'N/A'}</p>
+                  <p className="mb-2"><strong>Total:</strong> {selectedPayment.total ? `₹${selectedPayment.total.toFixed(2)}` : 'N/A'}</p>
                   <p className="mb-2"><strong>Amount:</strong> {selectedPayment.amount ? `₹${selectedPayment.amount.toFixed(2)}` : 'N/A'}</p>
                   <p className="mb-2"><strong>Date:</strong> {selectedPayment.date ? new Date(selectedPayment.date).toLocaleDateString() : 'N/A'}</p>
                   <p className="mb-2"><strong>Status:</strong> {selectedPayment.status || 'N/A'}</p>
+                  <p className="mb-2"><strong>Year:</strong> {selectedPayment.year || 'N/A'}</p>
+                  <p className="mb-2"><strong>Currency:</strong> {selectedPayment.currency || 'N/A'}</p>
                   <p className="mb-4"><strong>Razorpay Payment ID:</strong> {selectedPayment.razorpayPaymentId || 'N/A'}</p>
                   <div className="flex justify-end">
                     <button
