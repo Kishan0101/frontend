@@ -23,7 +23,7 @@ const QuotationForm = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchCustomers = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -31,26 +31,26 @@ const QuotationForm = () => {
           return;
         }
 
-        const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/customers', {
+        // Fetch customers
+        const customerResponse = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/customers', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          setCustomers(Array.isArray(data) ? data : []);
+        if (customerResponse.ok) {
+          const customerData = await customerResponse.json();
+          setCustomers(Array.isArray(customerData) ? customerData : []);
         } else {
           console.error('Failed to fetch customers');
           setCustomers([]);
         }
       } catch (error) {
-        console.error('Error fetching customers:', error);
+        console.error('Error fetching data:', error);
         setCustomers([]);
       }
     };
 
-    fetchCustomers();
+    fetchData();
   }, [navigate]);
 
   const handleAddField = () => {
@@ -87,6 +87,7 @@ const QuotationForm = () => {
         clientAddress: selectedCustomer?.address || '',
         clientEmail: selectedCustomer?.email || '',
         clientGSTIN: selectedCustomer?.GSTIN || '',
+        number: selectedCustomer?.phone || '',
       });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -250,8 +251,8 @@ const QuotationForm = () => {
                 type="text"
                 name="number"
                 value={formData.number}
-                onChange={handleFormChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 text-sm sm:text-base ${
+                readOnly
+                className={`w-full px-3 py-2 border rounded-lg bg-gray-100 focus:outline-none text-sm sm:text-base ${
                   errors.number ? 'border-red-500' : ''
                 }`}
               />
@@ -266,6 +267,7 @@ const QuotationForm = () => {
                 onChange={handleFormChange}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 text-sm sm:text-base"
               />
+            tying
             </div>
             <div>
               <label className="block text-gray-700 text-sm sm:text-base">Currency</label>
@@ -279,15 +281,19 @@ const QuotationForm = () => {
             </div>
             <div>
               <label className="block text-gray-700 text-sm sm:text-base">Status</label>
-              <input
-                type="text"
+              <select
                 name="status"
                 value={formData.status}
                 onChange={handleFormChange}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 text-sm sm:text-base ${
                   errors.status ? 'border-red-500' : ''
                 }`}
-              />
+              >
+                <option value="Draft">Draft</option>
+                <option value="Sent">Sent</option>
+                <option value="Accepted">Accepted</option>
+                <option value="Declined">Declined</option>
+              </select>
               {errors.status && <p className="text-red-500 text-xs">{errors.status}</p>}
             </div>
           </div>

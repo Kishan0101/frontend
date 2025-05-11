@@ -5,22 +5,151 @@ const PaymentForm = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     customerName: '',
+    companyName: '',
+    address: '',
+    phone: '',
+    quotationNo: '',
+    items: [],
+    subTotal: '',
+    tax: '',
+    total: '',
+    status: '',
+    year: '',
+    currency: '',
     amount: '',
     date: '',
-    status: '',
   });
+  const [customers, setCustomers] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
+      return;
     }
+
+    const fetchCustomers = async () => {
+      try {
+        const response = await fetch('https://webbiify-git-main-kishan0101s-projects.vercel.app/api/customers', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setCustomers(Array.isArray(data) ? data : []);
+        } else {
+          console.error('Failed to fetch customers');
+          setCustomers([]);
+        }
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+        setCustomers([]);
+      }
+    };
+
+    fetchCustomers();
   }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'customerName') {
+      const selectedCustomer = customers.find((customer) => customer.name === value);
+      if (selectedCustomer) {
+        // Fetch the latest quotation for the selected customer
+        fetchQuotation(selectedCustomer);
+      } else {
+        setFormData({
+          ...formData,
+          customerName: value,
+          companyName: '',
+          address: '',
+          phone: '',
+          quotationNo: '',
+          items: [],
+          subTotal: '',
+          tax: '',
+          total: '',
+          status: '',
+          year: '',
+          currency: '',
+          amount: '',
+        });
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const fetchQuotation = async (customer) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://webbiify-kishan0101s-projects.vercel.app/api/quotations', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const quotations = await response.json();
+        // Find the latest quotation for the selected customer
+        const customerQuotation = quotations
+          .filter((q) => q.client === customer.name)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        setFormData({
+          ...formData,
+          customerName: customer.name,
+          companyName: customer.name || '',
+          address: customer.address || '',
+          phone: customer.phone || '',
+          quotationNo: customerQuotation ? customerQuotation.quotationNo : '',
+          items: customerQuotation ? customerQuotation.items : [],
+          subTotal: customerQuotation ? customerQuotation.subTotal.toString() : '',
+          tax: customerQuotation ? customerQuotation.tax.toString() : '',
+          total: customerQuotation ? customerQuotation.total.toString() : '',
+          status: customerQuotation ? customerQuotation.status : '',
+          year: customerQuotation ? customerQuotation.year : '',
+          currency: customerQuotation ? customerQuotation.currency : '',
+          amount: customerQuotation ? customerQuotation.total.toString() : '',
+        });
+      } else {
+        console.error('Failed to fetch quotations');
+        setFormData({
+          ...formData,
+          customerName: customer.name,
+          companyName: customer.name || '',
+          address: customer.address || '',
+          phone: customer.phone || '',
+          quotationNo: '',
+          items: [],
+          subTotal: '',
+          tax: '',
+          total: '',
+          status: '',
+          year: '',
+          currency: '',
+          amount: '',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching quotations:', error);
+      setFormData({
+        ...formData,
+        customerName: customer.name,
+        companyName: customer.name || '',
+        address: customer.address || '',
+        phone: customer.phone || '',
+        quotationNo: '',
+        items: [],
+        subTotal: '',
+        tax: '',
+        total: '',
+        status: '',
+        year: '',
+        currency: '',
+        amount: '',
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -33,7 +162,13 @@ const PaymentForm = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          amount: parseFloat(formData.amount) || 0,
+          subTotal: parseFloat(formData.subTotal) || 0,
+          tax: parseFloat(formData.tax) || 0,
+          total: parseFloat(formData.total) || 0,
+        }),
       });
       if (response.ok) {
         navigate('/payments');
@@ -63,13 +198,129 @@ const PaymentForm = () => {
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">Customer Name</label>
-            <input
-              type="text"
+            <select
               name="customerName"
               value={formData.customerName}
               onChange={handleInputChange}
               className="mt-1 p-2 w-full border rounded-lg text-sm"
               required
+            >
+              <option value="">Select a customer</option>
+              {customers.map((customer) => (
+                <option key={customer._id} value={customer.name}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Company Name</label>
+            <input
+              type="text"
+              name="companyName"
+              value={formData.companyName}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Address</label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Phone</label>
+            <input
+              type="text"
+              name="phone"
+              value={formData.phone}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Quotation Number</label>
+            <input
+              type="text"
+              name="quotationNo"
+              value={formData.quotationNo}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Items</label>
+            <textarea
+              name="items"
+              value={formData.items.map(item => `${item.item} (Qty: ${item.quantity}, Price: ${item.price})`).join('\n')}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+              rows="4"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Sub Total</label>
+            <input
+              type="text"
+              name="subTotal"
+              value={formData.subTotal}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Tax</label>
+            <input
+              type="text"
+              name="tax"
+              value={formData.tax}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Total</label>
+            <input
+              type="text"
+              name="total"
+              value={formData.total}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Quotation Status</label>
+            <input
+              type="text"
+              name="status"
+              value={formData.status}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Year</label>
+            <input
+              type="text"
+              name="year"
+              value={formData.year}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Currency</label>
+            <input
+              type="text"
+              name="currency"
+              value={formData.currency}
+              readOnly
+              className="mt-1 p-2 w-full border rounded-lg bg-gray-100 text-sm"
             />
           </div>
           <div className="mb-4">
